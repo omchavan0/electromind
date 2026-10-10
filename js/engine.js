@@ -4,6 +4,8 @@ const SIZES = [0.5,0.75,1,1.5,2.5,4,6,10,16,25,35,50,70,95];            // mm²
 const AMPS  = {0.5:5,0.75:8,1:10,1.5:15,2.5:20,4:30,6:40,10:60,16:80,25:110,35:140,50:170,70:215,95:260}; // rough limits (Cu)
 const AWG   = {0.5:"20",0.75:"18",1:"17",1.5:"16",2.5:"14",4:"12",6:"10",10:"8",16:"6",25:"4",35:"2",50:"1/0",70:"2/0",95:"3/0"};
 const FUSES = [1,2,3,5,7.5,10,15,20,25,30,40,50,60,80,100,125,150,200];
+const RELAYS = [20,30,40,60,80];
+const FUSE_FACTOR = {normal:1.25, motor:1.5};
 const RHO   = {cu:0.0175, al:0.0282};   // Ω·mm²/m at 20°C
 const AL_DERATE = 0.78;
 
@@ -24,4 +26,13 @@ function wireCalc(V,I,L,dropPct,mat){
   const drop = rho*2*L*I/size;
   const fuse = FUSES.find(f => f>=I*1.25) || null;
   return {reqArea,size,drop,dropPct:drop/V*100,fuse};
+}
+
+function fuseCalc(V,W,type){
+  const I = W/V;
+  const need = I*FUSE_FACTOR[type];
+  const fuse = FUSES.find(f => f>=need) || null;
+  const relay = RELAYS.find(r => r>=need) || null;
+  const wire = fuse ? SIZES.find(s => AMPS[s]>=fuse) : null;
+  return {I,need,fuse,relay,wire};
 }
