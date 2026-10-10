@@ -35,7 +35,7 @@ function render(){
 }
 
 document.addEventListener('click',e=>{
-  const el = e.target.closest('[data-go],[data-lang],[data-v],[data-chem],[data-mat],[data-ftype],#save,#clr');
+  const el = e.target.closest('[data-go],[data-lang],[data-v],[data-chem],[data-mat],[data-ftype],[data-act],#save,#clr');
   if(!el) return;
   if(el.dataset.go){e.preventDefault();App.view=el.dataset.go;render();return}
   if(el.dataset.lang){App.lang=el.dataset.lang;store.set('em_lang',App.lang);render();return}
