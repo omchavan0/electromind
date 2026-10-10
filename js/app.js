@@ -1,6 +1,6 @@
 "use strict";
 /* Home, History, router and events. Calculators live in js/mod-*.js */
-const SOON = ['load','motor','res','unit','ai'];
+const SOON = ['load','motor','unit','ai'];
 
 const langBar = () => `<div class="lang" role="group" aria-label="Language">${
   [['mr','मर'],['hi','हिं'],['en','EN']].map(([c,l])=>`<button data-lang="${c}" class="${App.lang===c?'on':''}">${l}</button>`).join('')}</div>`;
