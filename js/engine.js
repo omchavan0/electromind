@@ -58,3 +58,153 @@ function spCalc(mode,list){
   if(mode==='series') return list.reduce((a,b)=>a+b,0);
   return 1/list.reduce((a,b)=>a+1/b,0);
 }
+/* ==========================================
+   ElectroMind — Resistor Colour Code Engine
+   Supports 4, 5 and 6 bands
+========================================== */
+
+const RC = {
+  black:  { d: 0, m: 1,       p: 250 },
+  brown:  { d: 1, m: 10,      t: 1,    p: 100 },
+  red:    { d: 2, m: 100,     t: 2,    p: 50 },
+  orange: { d: 3, m: 1e3,     p: 15 },
+  yellow: { d: 4, m: 1e4,     p: 25 },
+  green:  { d: 5, m: 1e5,     t: 0.5,  p: 20 },
+  blue:   { d: 6, m: 1e6,     t: 0.25, p: 10 },
+  violet: { d: 7, m: 1e7,     t: 0.1,  p: 5 },
+  grey:   { d: 8, m: 1e8,     t: 0.05, p: 1 },
+  white:  { d: 9, m: 1e9 },
+  gold:   { m: 0.1, t: 5 },
+  silver: { m: 0.01, t: 10 },
+  none:   { t: 20 }
+};
+
+const RC_ROLES = {
+  4: ["d", "d", "m", "t"],
+  5: ["d", "d", "d", "m", "t"],
+  6: ["d", "d", "d", "m", "t", "p"]
+};
+
+const RC_COL10 = [
+  "black", "brown", "red", "orange", "yellow",
+  "green", "blue", "violet", "grey", "white"
+];
+
+/* Decode colour bands into resistance */
+function rcDecode(n, bands) {
+  const roles = RC_ROLES[n];
+
+  if (
+    !roles ||
+    !Array.isArray(bands) ||
+    bands.length !== n
+  ) return null;
+
+  let digits = "";
+  let multiplier = 1;
+  let tolerance = null;
+  let ppm = null;
+
+  for (let i = 0; i < n; i++) {
+    const colour = RC[bands[i]];
+
+    if (!colour) return null;
+
+    const role = roles[i];
+
+    if (role === "d") {
+      if (colour.d === undefined) return null;
+      if (i === 0 && colour.d === 0) return null;
+
+      digits += colour.d;
+    } else if (role === "m") {
+      if (colour.m === undefined) return null;
+      multiplier = colour.m;
+    } else if (role === "t") {
+      if (colour.t === undefined) return null;
+      if (bands[i] === "none" && n !== 4) return null;
+
+      tolerance = colour.t;
+    } else if (role === "p") {
+      if (colour.p === undefined) return null;
+      ppm = colour.p;
+    }
+  }
+
+  return {
+    ohms: Number(digits) * multiplier,
+    tol: tolerance,
+    ppm: ppm
+  };
+}
+
+/* Encode resistance into colour bands */
+function rcEncode(ohms, n, tolerance, ppm) {
+  if (
+    !RC_ROLES[n] ||
+    !Number.isFinite(ohms) ||
+    ohms <= 0
+  ) return null;
+
+  const digitCount = n === 4 ? 2 : 3;
+  const limit = 10 ** digitCount;
+
+  let exponent =
+    Math.floor(Math.log10(ohms)) - (digitCount - 1);
+
+  let digits = Math.round(
+    ohms / (10 ** exponent)
+  );
+
+  if (digits >= limit) {
+    digits = Math.round(digits / 10);
+    exponent++;
+  }
+
+  if (exponent < -2 || exponent > 9) return null;
+
+  const digitColours = String(digits)
+    .split("")
+    .map(x => RC_COL10[Number(x)]);
+
+  let multiplierColour;
+
+  if (exponent === -2) {
+    multiplierColour = "silver";
+  } else if (exponent === -1) {
+    multiplierColour = "gold";
+  } else {
+    multiplierColour = RC_COL10[exponent];
+  }
+
+  const toleranceColour = Object.keys(RC).find(
+    colour => RC[colour].t === tolerance
+  );
+
+  if (!toleranceColour) return null;
+  if (toleranceColour === "none" && n !== 4) return null;
+
+  const bands = [
+    ...digitColours,
+    multiplierColour,
+    toleranceColour
+  ];
+
+  if (n === 6) {
+    const tempColour = Object.keys(RC).find(
+      colour => RC[colour].p === ppm
+    );
+
+    if (!tempColour) return null;
+
+    bands.push(tempColour);
+  }
+
+  const actual = digits * (10 ** exponent);
+
+  return {
+    bands,
+    actual,
+    exact: Math.abs(actual - ohms) < 1e-9 * ohms
+  };
+}
