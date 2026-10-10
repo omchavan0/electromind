@@ -36,3 +36,18 @@ function fuseCalc(V,W,type){
   const wire = fuse ? SIZES.find(s => AMPS[s]>=fuse) : null;
   return {I,need,fuse,relay,wire};
 }
+
+/* Ohm's law: give any two of {V,I,R,P} (numbers > 0), get all four back.
+   f = the two formulas used, in the order of the two computed values. */
+function ohmCalc(k){
+  const has = x => typeof x==='number' && isFinite(x) && x>0;
+  let {V,I,R,P} = k, f;
+  if(has(V)&&has(I))      {R=V/I; P=V*I;               f=['R = V ÷ I','P = V × I']}
+  else if(has(V)&&has(R)) {I=V/R; P=V*V/R;             f=['I = V ÷ R','P = V² ÷ R']}
+  else if(has(V)&&has(P)) {I=P/V; R=V*V/P;             f=['I = P ÷ V','R = V² ÷ P']}
+  else if(has(I)&&has(R)) {V=I*R; P=I*I*R;             f=['V = I × R','P = I² × R']}
+  else if(has(I)&&has(P)) {V=P/I; R=P/(I*I);           f=['V = P ÷ I','R = P ÷ I²']}
+  else if(has(R)&&has(P)) {V=Math.sqrt(P*R); I=Math.sqrt(P/R); f=['V = √(P × R)','I = √(P ÷ R)']}
+  else return null;
+  return {V,I,R,P,f};
+}
