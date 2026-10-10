@@ -22,7 +22,10 @@ const T = {
   ohm:"ओहम्स लॉ",ohmS:"V, I, R, P: दोन भरा, बाकी मिळवा",oR:"रेझिस्टन्स (Ω)",oP:"पॉवर (W)",oRes:"निकाल",
   ohint:"कोणतेही दोन आकडे भरा. बाकी दोन आपोआप निघतील (हिरवे खाने).",
   obig:"या आकड्यांचा हिशोब होत नाही. आकडे तपासा.",
-  onote:"गृहीत: DC किंवा साधा रेझिस्टर. प्रत्यक्षात बल्ब, मोटर, कॉइलचा रेझिस्टन्स गरम झाल्यावर किंवा AC मध्ये बदलतो. हा अंदाज आहे."},
+  onote:"गृहीत: DC किंवा साधा रेझिस्टर. प्रत्यक्षात बल्ब, मोटर, कॉइलचा रेझिस्टन्स गरम झाल्यावर किंवा AC मध्ये बदलतो. हा अंदाज आहे.",
+  sp:"मालिका / समांतर",spS:"रेझिस्टर जोडून एकूण R",ser:"मालिका",par:"समांतर",sadd:"+ रेझिस्टर जोडा",stot:"एकूण रेझिस्टन्स",
+  shint:"किमान दोन रेझिस्टरची किंमत भरा.",sbad:"सर्व किमती 0 पेक्षा मोठ्या भरा.",sdel:"काढा",
+  snote:"रेझिस्टरच्या tolerance (उदा. ±5%) मुळे प्रत्यक्ष मूल्य थोडे वेगळे असू शकते. हा अंदाज आहे."},
  hi:{sub:"इलेक्ट्रिकल और बैटरी कैलकुलेटर",hello:"नमस्ते, क्या निकालना है?",
   backup:"बैकअप टाइम",backupS:"बैटरी कितनी देर चलेगी",wire:"वायर साइज़",wireS:"वोल्टेज ड्रॉप सहित, गाड़ी के लिए",
   fuse:"फ्यूज़ / रिले",load:"लोड",motor:"मोटर",res:"रेज़िस्टर",unit:"यूनिट",ai:"स्मार्ट AI",soon:"जल्द",
@@ -45,7 +48,10 @@ const T = {
   ohm:"ओम का नियम",ohmS:"V, I, R, P: दो भरें, बाकी पाएँ",oR:"प्रतिरोध (Ω)",oP:"पावर (W)",oRes:"नतीजा",
   ohint:"कोई भी दो मान भरें। बाकी दो अपने-आप निकलेंगे (हरे खाने)।",
   obig:"इन मानों से हिसाब नहीं बनता। मान जाँचें।",
-  onote:"मान्यता: DC या साधारण रेज़िस्टर। असल में बल्ब, मोटर, कॉइल का प्रतिरोध गर्म होने पर या AC में बदलता है। यह अनुमान है।"},
+  onote:"मान्यता: DC या साधारण रेज़िस्टर। असल में बल्ब, मोटर, कॉइल का प्रतिरोध गर्म होने पर या AC में बदलता है। यह अनुमान है।",
+  sp:"सीरीज़ / पैरेलल",spS:"रेज़िस्टर जोड़कर कुल R",ser:"सीरीज़",par:"पैरेलल",sadd:"+ रेज़िस्टर जोड़ें",stot:"कुल प्रतिरोध",
+  shint:"कम से कम दो रेज़िस्टर के मान भरें।",sbad:"सभी मान 0 से बड़े भरें।",sdel:"हटाएँ",
+  snote:"रेज़िस्टर की tolerance (जैसे ±5%) से असली मान थोड़ा अलग हो सकता है। यह अनुमान है।"},
  en:{sub:"Electrical & Battery Calculator",hello:"Hello, what do you want to calculate?",
   backup:"Backup Time",backupS:"How long will the battery last",wire:"Wire Size",wireS:"With voltage drop, for vehicles",
   fuse:"Fuse / Relay",load:"Load",motor:"Motor",res:"Resistor",unit:"Units",ai:"Smart AI",soon:"Soon",
@@ -68,5 +74,8 @@ const T = {
   ohm:"Ohm's Law",ohmS:"V, I, R, P: fill two, get the rest",oR:"Resistance (Ω)",oP:"Power (W)",oRes:"Result",
   ohint:"Fill any two values. The other two are calculated (green boxes).",
   obig:"These values can't be calculated. Check the numbers.",
-  onote:"Assumed: DC or a plain resistor. In real bulbs, motors and coils the resistance changes when hot or on AC. This is an estimate."}
+  onote:"Assumed: DC or a plain resistor. In real bulbs, motors and coils the resistance changes when hot or on AC. This is an estimate.",
+  sp:"Series / Parallel",spS:"Total R of resistors",ser:"Series",par:"Parallel",sadd:"+ Add resistor",stot:"Total resistance",
+  shint:"Enter at least two resistor values.",sbad:"Enter all values above 0.",sdel:"Remove",
+  snote:"Resistor tolerance (e.g. ±5%) can make the real value slightly different. This is an estimate."}
 };
