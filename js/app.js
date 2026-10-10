@@ -23,7 +23,7 @@ const navBar = () => `<nav class="nav"><div>
   <button data-go="hist" class="${view==='hist'?'on':''}">${t('hist')}</button></div></nav>`;
 const field = (id,label,val,mode='decimal') => `<div class="f"><label for="${id}">${label}</label><input id="${id}" inputmode="${mode}" value="${esc(val)}"></div>`;
 const chip = (attr,val,label,on) => `<button class="chip ${on?'on':''}" ${attr}="${val}">${label}</button>`;
-const top = title => `<div class="bar"><button class="back" data-go="home" aria-label="${t('home')}">‹</button><h1>${title}</h1></div>`;
+const topBar = title => `<div class="bar"><button class="back" data-go="home" aria-label="${t('home')}">‹</button><h1>${title}</h1></div>`;
 
 /* ---------- Views ---------- */
 function homeView(){
@@ -39,7 +39,7 @@ function homeView(){
   <div class="sec"><span>${t('recent')}</span><a href="#" data-go="hist" style="color:var(--primary);font-weight:600;text-decoration:none">${t('all')}</a></div>${rec}${navBar()}`;
 }
 function backupView(){
-  return `${top(t('backup'))}
+  return `${topBar(t('backup'))}
   <div id="out"></div>
   <div class="chips">${[12,24,48].map(v=>chip('data-v',v,v+'V',B.V==v)).join('')}</div>
   <div class="lab">${t('chem')}</div>
@@ -49,7 +49,7 @@ function backupView(){
   <div class="actions"><button class="save" id="save">${t('save')}</button></div>`;
 }
 function wireView(){
-  return `${top(t('wire'))}
+  return `${topBar(t('wire'))}
   <div id="out"></div>
   <div class="chips">${[12,24,48].map(v=>chip('data-v',v,v+'V',W_.V==v)).join('')}${['cu','al'].map(m=>chip('data-mat',m,t(m),W_.mat===m)).join('')}</div>
   <div class="fields">${field('I',t('A'),W_.I)}${field('L',t('L'),W_.L)}${field('drop',t('md'),W_.drop)}</div>
@@ -59,7 +59,7 @@ function wireView(){
 function histView(){
   const list = hist.map(h=>`<div class="item"><div class="k">${esc(h.title)} · ${esc(h.when)}</div><div class="v">${esc(h.result)}</div></div>`).join('')
     || `<div class="empty">${t('none')}</div>`;
-  return `${top(t('hist'))}${list}${hist.length?`<button class="clear" id="clr">${t('clear')}</button>`:''}${navBar()}`;
+  return `${topBar(t('hist'))}${list}${hist.length?`<button class="clear" id="clr">${t('clear')}</button>`:''}${navBar()}`;
 }
 
 /* ---------- Live update ---------- */
