@@ -1,15 +1,18 @@
+
 "use strict";
+
 (function () {
-  const M = store.get("em_motor", {
+  const KEY = "em_motor";
+
+  const M = store.get(KEY, {
     type: "dc",
+    W: 500,
     V: 12,
-    W: 240,
+    PF: 0.85,
     eff: 85,
-    pf: 0.85,
-    start: 3,
-    hours: 2,
-    battV: 12,
-    dod: 80
+    startMult: 3,
+    batteryV: 12,
+    hours: 2
   });
 
   registerModule({
@@ -18,121 +21,147 @@
     subKey: "motorS",
 
     render() {
-      return `${topBar(t("motor"))}
+      return `
+        ${topBar(t("motor"))}
+
         <div id="motorOut"></div>
 
         <div class="lab">${t("motorType")}</div>
         <div class="chips">
-          ${[
-            ["dc", "DC"],
-            ["ac1", "1 Phase AC"],
-            ["ac3", "3 Phase AC"]
-          ].map(([v, label]) =>
-            chip("data-act", "type-" + v, label, M.type === v)
-          ).join("")}
+          ${chip("data-ftype", "dc", "DC", M.type === "dc")}
+          ${chip("data-ftype", "single", "AC 1φ", M.type === "single")}
+          ${chip("data-ftype", "three", "AC 3φ", M.type === "three")}
         </div>
 
-        <div class="fields">
-          ${field("mV", t("V"), M.V)}
+        <div class="fields two">
           ${field("mW", t("motorW"), M.W)}
-          ${field("mEff", t("eff"), M.eff)}
-          ${M.type === "dc" ? "" : field("mPF", t("motorPF"), M.pf)}
-          ${field("mStart", t("startMult"), M.start)}
+          ${field("mV", "Supply voltage (V)", M.V)}
+          ${field("mPF", t("motorPF"), M.PF)}
+          ${field("mEff", t("eff") + " (%)", M.eff)}
+          ${field("mStart", t("startMult"), M.startMult)}
+          ${field("mHours", t("runHours"), M.hours)}
         </div>
 
         <div class="lab">${t("batteryForMotor")}</div>
-        <div class="fields">
-          ${field("mBattV", t("batteryV"), M.battV)}
-          ${field("mHours", t("runHours"), M.hours)}
-          ${field("mDod", t("dod"), M.dod)}
+        <div class="fields two">
+          ${field("mBatteryV", t("batteryV"), M.batteryV)}
         </div>
 
         <div class="actions">
           <button class="save" id="save">${t("save")}</button>
         </div>
-        <div class="note">${t("motorNote")}</div>`;
+
+        <div class="note">${t("motorNote")}</div>
+      `;
     },
 
     update() {
       const get = id => document.getElementById(id);
+      if (!get("mW")) return;
 
-      if (get("mV")) {
-        M.V = num(get("mV").value);
-        M.W = num(get("mW").value);
-        M.eff = num(get("mEff").value);
-        M.start = num(get("mStart").value);
-        M.battV = num(get("mBattV").value);
-        M.hours = num(get("mHours").value);
-        M.dod = num(get("mDod").value);
-        if (get("mPF")) M.pf = num(get("mPF").value);
-        store.set("em_motor", M);
-      }
+      M.W = num(get("mW").value);
+      M.V = num(get("mV").value);
+      M.PF = num(get("mPF").value);
+      M.eff = num(get("mEff").value);
+      M.startMult = num(get("mStart").value);
+      M.hours = num(get("mHours").value);
+      M.batteryV = num(get("mBatteryV").value);
 
-      const valid = [
-        M.V, M.W, M.eff, M.start, M.battV, M.hours, M.dod
-      ].every(Number.isFinite) &&
-        M.V > 0 && M.W > 0 &&
-        M.eff > 0 && M.eff <= 100 &&
-        M.start >= 1 && M.start <= 10 &&
-        M.battV > 0 && M.hours > 0 &&
-        M.dod > 0 && M.dod <= 100 &&
-        (M.type === "dc" || (M.pf > 0 && M.pf <= 1));
+      store.set(KEY, M);
+
+      const out = get("motorOut");
+
+      const valid =
+        [M.W, M.V, M.PF, M.eff, M.startMult, M.hours, M.batteryV]
+          .every(Number.isFinite) &&
+        M.W > 0 &&
+        M.V > 0 &&
+        M.PF > 0 &&
+        M.PF <= 1 &&
+        M.eff > 0 &&
+        M.eff <= 100 &&
+        M.startMult >= 1 &&
+        M.hours > 0 &&
+        M.batteryV > 0;
 
       if (!valid) {
         App.last = null;
-        get("motorOut").innerHTML =
-          `<div class="res bad"><div class="d">${t("bad")}</div></div>`;
+        out.innerHTML = `
+          <div class="res bad">
+            <div class="d">${t("bad")}</div>
+          </div>`;
         return;
       }
 
-      const e = M.eff / 100;
-      let amps;
+      const efficiency = M.eff / 100;
+      let current;
 
       if (M.type === "dc") {
-        amps = M.W / (M.V * e);
-      } else if (M.type === "ac1") {
-        amps = M.W / (M.V * e * M.pf);
+        current = M.W / (M.V * efficiency);
+      } else if (M.type === "single") {
+        current = M.W / (M.V * M.PF * efficiency);
       } else {
-        amps = M.W / (Math.sqrt(3) * M.V * e * M.pf);
+        current = M.W / (Math.sqrt(3) * M.V * M.PF * efficiency);
       }
 
-      const startA = amps * M.start;
-      const wh = M.W * M.hours;
-      const ah = wh / (M.battV * (M.dod / 100) * e);
-      const kwh = wh / 1000;
+      const startCurrent = current * M.startMult;
+      const energyWh = M.W * M.hours;
 
-      const n = x => fmt(x, 1);
-      const result = `${t("cur")}: ${n(amps)} A · ${t("startCurrent")}: ${n(startA)} A`;
+      // Approximate battery sizing: includes 85% inverter efficiency.
+      const batteryAh = energyWh / (M.batteryV * 0.85 * 0.85);
+
+      const n = x => fmt(x, 2);
+
+      const typeLabel =
+        M.type === "dc" ? "DC" :
+        M.type === "single" ? "AC 1φ" : "AC 3φ";
 
       App.last = {
-        title: `${t("motor")} · ${M.W} W / ${M.V} V`,
-        result: `${n(amps)} A; ${t("batteryAh")}: ${n(ah)} Ah`
+        title: `${t("motor")} · ${M.W} W · ${typeLabel}`,
+        result:
+          `${t("runningCurrent")}: ${n(current)} A; ` +
+          `${t("startCurrent")}: ${n(startCurrent)} A`
       };
 
-      get("motorOut").innerHTML = `
+      out.innerHTML = `
         <div class="res">
           <div class="l">${t("runningCurrent")}</div>
-          <div class="n">${n(amps)} A</div>
-          <div class="d">${t("startCurrent")}: ${n(startA)} A ${t("startEstimate")}</div>
+          <div class="n">${n(current)} A</div>
+          <div class="d">${M.W} W · ${M.V} V · ${typeLabel}</div>
         </div>
+
+        <div class="res">
+          <div class="l">${t("startCurrent")} ${t("startEstimate")}</div>
+          <div class="n">${n(startCurrent)} A</div>
+          <div class="d">${t("startMult")}: ${n(M.startMult)}×</div>
+        </div>
+
         <div class="res">
           <div class="l">${t("energyUsed")}</div>
-          <div class="n">${n(kwh)} kWh</div>
-          <div class="d">${t("runHours")}: ${n(M.hours)} h · ${n(wh)} Wh</div>
+          <div class="n">${n(energyWh)} Wh</div>
+          <div class="d">${t("runHours")}: ${n(M.hours)}</div>
         </div>
+
         <div class="res">
           <div class="l">${t("batteryNeeded")}</div>
-          <div class="n">${n(ah)} Ah</div>
-          <div class="d">${M.battV} V · ${t("batteryEstimate")}</div>
-        </div>`;
+          <div class="n">${n(batteryAh)} Ah</div>
+          <div class="d">${M.batteryV} V · ${t("batteryEstimate")}</div>
+        </div>
+      `;
     },
 
     click(el) {
-      if (el.dataset.act && el.dataset.act.startsWith("type-")) {
-        M.type = el.dataset.act.slice(5);
-        render();
+      if (el.dataset.ftype) {
+        if (!["dc", "single", "three"].includes(el.dataset.ftype)) {
+          return false;
+        }
+
+        M.type = el.dataset.ftype;
+        setOn("[data-ftype]", el);
+        this.update();
         return true;
       }
+
       return false;
     }
   });
