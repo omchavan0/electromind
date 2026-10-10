@@ -51,3 +51,10 @@ function ohmCalc(k){
   else return null;
   return {V,I,R,P,f};
 }
+
+/* Series / parallel resistance. list = resistor values in ohms (all > 0). */
+function spCalc(mode,list){
+  if(!Array.isArray(list) || list.length<1 || !list.every(x=>typeof x==='number' && isFinite(x) && x>0)) return null;
+  if(mode==='series') return list.reduce((a,b)=>a+b,0);
+  return 1/list.reduce((a,b)=>a+1/b,0);
+}
