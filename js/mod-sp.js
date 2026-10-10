@@ -1,81 +1,137 @@
 "use strict";
-(function(){
-const UN = [['mΩ',1e-3],['Ω',1],['kΩ',1e3],['MΩ',1e6]];
-const MAX = 10;
-const fac = u => { const x = UN.find(a=>a[0]===u); return x ? x[1] : 1; };
-const pick = x => { let b = UN[0]; UN.forEach(a=>{ if(Math.abs(x)/a[1]>=1) b = a; }); return b[0]; };
-const nice = n => {
-  if(!isFinite(n)) return '';
-  if(n===0) return '0';
-  const a = Math.abs(n);
-  if(a<1e-6 || a>=1e12) return n.toExponential(3);
-  return String(Number(n.toPrecision(4)));
-};
+(function () {
+  const B = store.get("em_bpro", {
+    V: 12,
+    Ah: 100,
+    loadA: 10,
+    hours: 5,
+    dod: 50,
+    eff: 85,
+    chargeA: 10,
+    chem: "lead"
+  });
 
-let S = store.get('em_s',null);
-if(!S || !Array.isArray(S.rows) || S.rows.length<2 || (S.mode!=='series' && S.mode!=='parallel'))
-  S = {mode:'series', rows:[{v:'100',u:'Ω'},{v:'220',u:'Ω'}]};
+  registerModule({
+    id: "battery",
+    titleKey: "batteryPro",
+    subKey: "batteryProS",
 
-const sync = () => S.rows.forEach((r,i)=>{ const a=$('#s'+i), b=$('#su'+i); if(a&&b){ r.v=a.value; r.u=b.value; } });
-const row = (r,i) => `<div class="f"><label for="s${i}">R${i+1}</label><div style="display:flex;align-items:center;gap:6px">
-  <input id="s${i}" inputmode="decimal" value="${esc(r.v)}" style="flex:1;min-width:0">
-  <select id="su${i}" aria-label="unit" style="font:inherit;font-size:18px;font-weight:800;color:var(--primary);border:0;background:#E8ECF4;border-radius:10px;min-height:44px;padding:0 6px">${
-    UN.map(a=>`<option${a[0]===r.u?' selected':''}>${a[0]}</option>`).join('')}</select>${
-  S.rows.length>2 ? `<button data-act="del:${i}" aria-label="${t('sdel')}" style="border:0;background:#E8ECF4;border-radius:10px;min-height:44px;min-width:44px;font-size:20px;color:var(--err)">✕</button>` : ''}
-  </div></div>`;
+    render() {
+      return `${topBar(t("batteryPro"))}
+        <div id="batteryOut"></div>
 
-registerModule({
-  id:'sp', titleKey:'sp', subKey:'spS',
-  render(){
-    return `${topBar(t('sp'))}
-    <div id="out"></div>
-    <div class="chips">${[['series','ser'],['parallel','par']].map(([k,l])=>chip('data-act','mode:'+k,t(l),S.mode===k)).join('')}</div>
-    <div class="fields" style="grid-template-columns:1fr;gap:8px">${S.rows.map(row).join('')}</div>
-    ${S.rows.length<MAX ? `<div class="chips"><button class="chip" data-act="add">${t('sadd')}</button></div>` : ''}
-    <div class="actions"><button class="save" id="save">${t('save')}</button></div>`;
-  },
-  update(){
-    sync(); store.set('em_s',S);
-    const out = $('#out');
-    const vals = [], items = []; let bad = false;
-    S.rows.forEach(r=>{
-      if(String(r.v).trim()==='') return;
-      const n = num(r.v);
-      if(!(n>0)){ bad = true; return; }
-      vals.push(n*fac(r.u)); items.push(`${nice(n)} ${r.u}`);
-    });
-    if(bad){ App.last=null; out.innerHTML=`<div class="res bad"><div class="d">${t('sbad')}</div></div>`; return; }
-    if(vals.length<2){ App.last=null; out.innerHTML=`<div class="note">${t('shint')}</div>`; return; }
-    const tot = spCalc(S.mode, vals);
-    if(tot===null || !isFinite(tot)){ App.last=null; out.innerHTML=`<div class="res bad"><div class="d">${t('sbad')}</div></div>`; return; }
-    const u = pick(tot);
-    const txt = `${digits(nice(tot/fac(u)))} ${u}`;
-    const formula = S.mode==='series' ? 'R = R1 + R2 + …' : '1/R = 1/R1 + 1/R2 + …';
-    App.last = {title:`${t('sp')} · ${t(S.mode==='series'?'ser':'par')}: ${items.join(', ')}`, result:`R = ${txt}`};
-    out.innerHTML = `<div class="res"><div class="l">${t('stot')} (${t(S.mode==='series'?'ser':'par')})</div>
-      <div class="n">${txt}</div>
-      <div class="d">${formula}${u!=='Ω' ? ` · ${digits(nice(tot))} Ω` : ''}</div></div>
-      <div class="note">${t('snote')}</div>`;
-  },
-  click(el){
-    const a = el.dataset.act; if(!a) return false;
-    if(a.indexOf('mode:')===0){ S.mode=a.slice(5); setOn('[data-act^="mode:"]',el); this.update(); return true; }
-    if(a==='add'){
-      sync();
-      if(S.rows.length<MAX) S.rows.push({v:'', u:S.rows[S.rows.length-1].u});
-      store.set('em_s',S); render();
-      const f = $('#s'+(S.rows.length-1)); if(f) f.focus();
-      return true;
+        <div class="chips">
+          ${[12, 24, 48].map(v =>
+            chip("data-v", v, v + "V", B.V === v)
+          ).join("")}
+        </div>
+
+        <div class="lab">${t("chem")}</div>
+        <div class="chips">
+          ${["lead", "agm", "lfp"].map(c =>
+            chip("data-chem", c, t(c), B.chem === c)
+          ).join("")}
+        </div>
+
+        <div class="fields">
+          ${field("bAh", t("Ah"), B.Ah)}
+          ${field("bLoadA", t("loadCurrent"), B.loadA)}
+          ${field("bHours", t("runHours"), B.hours)}
+          ${field("bDod", t("dod"), B.dod)}
+          ${field("bEff", t("eff"), B.eff)}
+          ${field("bCharge", t("chargeCurrent"), B.chargeA)}
+        </div>
+
+        <div class="actions">
+          <button class="save" id="save">${t("save")}</button>
+        </div>
+        <div class="note">${t("batteryNote")}</div>`;
+    },
+
+    update() {
+      const get = id => document.getElementById(id);
+
+      if (get("bAh")) {
+        B.Ah = num(get("bAh").value);
+        B.loadA = num(get("bLoadA").value);
+        B.hours = num(get("bHours").value);
+        B.dod = num(get("bDod").value);
+        B.eff = num(get("bEff").value);
+        B.chargeA = num(get("bCharge").value);
+        store.set("em_bpro", B);
+      }
+
+      const valid = [
+        B.V, B.Ah, B.loadA, B.hours, B.dod, B.eff, B.chargeA
+      ].every(Number.isFinite) &&
+        B.V > 0 && B.Ah > 0 && B.loadA > 0 &&
+        B.hours > 0 && B.dod > 0 && B.dod <= 100 &&
+        B.eff > 0 && B.eff <= 100 && B.chargeA > 0;
+
+      if (!valid) {
+        App.last = null;
+        get("batteryOut").innerHTML =
+          `<div class="res bad"><div class="d">${t("bad")}</div></div>`;
+        return;
+      }
+
+      const factor = (B.dod / 100) * (B.eff / 100);
+      const availableAh = B.Ah * factor;
+      const backupH = availableAh / B.loadA;
+      const requiredAh = (B.loadA * B.hours) / factor;
+      const chargeHours = (B.Ah * 1.2) / B.chargeA;
+      const n = x => fmt(x, 1);
+
+      const bh = Math.floor(backupH);
+      const bm = Math.round((backupH - bh) * 60);
+      const backupText = `${digits(bh)} ${t("hr")} ${digits(bm)} ${t("mn")}`;
+
+      App.last = {
+        title: `${t("batteryPro")} · ${B.V}V ${B.Ah}Ah`,
+        result: `${t("backup")}: ${backupText}; ${t("requiredAh")}: ${n(requiredAh)} Ah`
+      };
+
+      get("batteryOut").innerHTML = `
+        <div class="res">
+          <div class="l">${t("backup")}</div>
+          <div class="n">${backupText}</div>
+          <div class="d">${t("loadCurrent")}: ${n(B.loadA)} A</div>
+        </div>
+        <div class="res">
+          <div class="l">${t("requiredAh")}</div>
+          <div class="n">${n(requiredAh)} Ah</div>
+          <div class="d">${t("targetBackup")}: ${n(B.hours)} h · ${B.V} V</div>
+        </div>
+        <div class="res">
+          <div class="l">${t("chargeTime")}</div>
+          <div class="n">${n(chargeHours)} h</div>
+          <div class="d">${t("chargeCurrent")}: ${n(B.chargeA)} A</div>
+        </div>`;
+    },
+
+    click(el) {
+      if (el.dataset.v) {
+        B.V = Number(el.dataset.v);
+        setOn("[data-v]", el);
+        this.update();
+        return true;
+      }
+
+      if (el.dataset.chem) {
+        B.chem = el.dataset.chem;
+        const c = CHEM[B.chem];
+        if (c) {
+          B.dod = c.dod;
+          B.eff = c.eff;
+          document.getElementById("bDod").value = B.dod;
+          document.getElementById("bEff").value = B.eff;
+        }
+        setOn("[data-chem]", el);
+        this.update();
+        return true;
+      }
+
+      return false;
     }
-    if(a.indexOf('del:')===0){
-      sync();
-      if(S.rows.length>2) S.rows.splice(+a.slice(4),1);
-      store.set('em_s',S); render(); return true;
-    }
-    return false;
-  }
-});
-document.addEventListener('change',e=>{
-  if(App.view==='sp' && e.target.matches && e.target.matches('select[id^="su"]')) MODULES.sp.update();
-});
+  });
 })();
