@@ -1,12 +1,12 @@
 "use strict";
 /* ElectroMind service worker: makes the app work offline.
-   When you change any file, bump CACHE (v5 -> v6) and the ?v= numbers in index.html. */
-const CACHE = 'electromind-v5';
+   When you change any file, bump CACHE (v6 -> v7) and the ?v= numbers in index.html. */
+const CACHE = 'electromind-v6';
 const CORE = [
   './', 'index.html', 'manifest.json', 'css/style.css?v=3',
-  'js/i18n.js?v=3', 'js/engine.js?v=3', 'js/core.js?v=3',
-  'js/mod-backup.js?v=3', 'js/mod-wire.js?v=3', 'js/mod-fuse.js?v=3', 'js/mod-ohm.js?v=4',
-  'js/app.js?v=3', 'js/pwa.js?v=1'
+  'js/i18n.js?v=4', 'js/engine.js?v=4', 'js/core.js?v=3',
+  'js/mod-backup.js?v=3', 'js/mod-wire.js?v=3', 'js/mod-fuse.js?v=3', 'js/mod-ohm.js?v=4', 'js/mod-sp.js?v=4',
+  'js/app.js?v=4', 'js/pwa.js?v=1'
 ];
 const OPTIONAL = ['icons/icon.svg', 'icons/icon-maskable.svg'];
 
