@@ -1,0 +1,16 @@
+{
+  "name": "ElectroMind – Intelligent Electrical Lab",
+  "short_name": "ElectroMind",
+  "description": "Electrical and battery calculators (Marathi, Hindi, English)",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F3F5F9",
+  "theme_color": "#1456D9",
+  "lang": "mr",
+  "icons": [
+    { "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "icons/icon-maskable.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}
