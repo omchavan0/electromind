@@ -1,7 +1,7 @@
 "use strict";
 /* ElectroMind service worker: makes the app work offline.
    When you change any file, bump CACHE (V7 -> V8) and the ?v= numbers in index.html. */
-const CACHE = 'electromind-v7';
+const CACHE = 'electromind-v8';
 const CORE = [
   './', 'index.html', 'manifest.json', 'css/style.css?v=3',
   'js/i18n.js?v=4', 'js/engine.js?v=4', 'js/core.js?v=3',
