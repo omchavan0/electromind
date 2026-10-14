@@ -5,7 +5,7 @@ const CACHE = 'electromind-v8';
 const CORE = [
   './', 'index.html', 'manifest.json', 'css/style.css?v=3',
   'js/i18n.js?v=4', 'js/engine.js?v=4', 'js/core.js?v=3',
-  'js/mod-backup.js?v=3', 'js/mod-wire.js?v=3', 'js/mod-fuse.js?v=3', 'js/mod-ohm.js?v=4', 'js/mod-sp.js?v=5',
+  'js/mod-backup.js?v=3', 'js/mod-wire.js?v=3', 'js/mod-fuse.js?v=3', 'js/mod-ohm.js?v=4', 'js/mod-sp.js?v=6',
   'js/app.js?v=5', 'js/pwa.js?v=1'
 ];
 const OPTIONAL = ['icons/icon.svg', 'icons/icon-maskable.svg'];
