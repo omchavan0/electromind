@@ -169,230 +169,270 @@
     titleKey: "batteryPro",
     subKey: "batteryProS",
 
-    render() {
-      const chem = [
-        ["liion", "liion"], ["lfp", "lfp"],
-        ["lead", "lead"], ["custom", "custom"]
-      ];
-      return `
-        ${topBar(L("title"))}
-        <div class="bp-card">
-          <div class="bp-kicker">ELECTROMIND · BATTERY LAB</div>
-          <h2>${L("intro")}</h2><p>${L("intro2")}</p>
-          <div class="bp-label">${L("chem")}</div>
-          <div class="bp-chips">
-            ${chem.map(([id,k]) => `<button type="button" data-chem="${id}" class="${B.chemistry===id?'active':''}">${L(k)}</button>`).join("")}
-          </div>
-          <p class="bp-muted">${L("customHint")}</p>
+    
+render() {
+  const chem = [
+    ["liion", "liion"],
+    ["lfp", "lfp"],
+    ["lead", "lead"],
+    ["custom", "custom"]
+  ];
+
+  return `
+    ${topBar(L("title"))}
+
+    <div class="bp-card">
+      <div class="bp-kicker">ELECTROMIND · BATTERY LAB</div>
+      <h2>${L("intro")}</h2>
+      <p>Design and calculate your battery pack.</p>
+
+      <div class="bp-label">${L("chem")}</div>
+      <div class="bp-chips">
+        ${chem.map(([id,k]) =>
+          `<button type="button"
+            data-chem="${id}"
+            class="${B.chemistry===id?'active':''}">
+            ${L(k)}
+          </button>`
+        ).join("")}
+      </div>
+
+      <p class="bp-muted">${L("customHint")}</p>
+    </div>
+
+    <div class="bp-card">
+      <h3>1. ${L("design")}</h3>
+      <div class="fields two">
+        ${fieldLocal("bpCellV",L("cellV"),B.cellV)}
+        ${fieldLocal("bpCellAh",L("cellAh"),B.cellAh)}
+        ${fieldLocal("bpFullV",L("fullV"),B.fullCellV)}
+        ${fieldLocal("bpTargetV",L("targetV"),B.targetV)}
+        ${fieldLocal("bpTargetAh",L("targetAh"),B.targetAh)}
+      </div>
+    </div>
+
+    <div id="bpOut"></div>
+
+    <div class="actions">
+      <button class="save" id="save">${L("save")}</button>
+    </div>
+
+    <div class="note">${L("safety")}</div>
+
+    <style>
+      .bp-card {
+        margin: 12px 0;
+        padding: 16px;
+        border-radius: 20px;
+        background: var(--card, rgba(255,255,255,.75));
+        border: 1px solid rgba(120,150,190,.23);
+        box-shadow: 0 8px 24px rgba(30,60,100,.06);
+      }
+
+      .bp-card h2 {
+        font-size: 21px;
+        margin: 7px 0;
+      }
+
+      .bp-card h3 {
+        font-size: 16px;
+        margin: 0 0 12px;
+      }
+
+      .bp-card p {
+        font-size: 13px;
+        line-height: 1.55;
+      }
+
+      .bp-kicker, .bp-label {
+        font-size: 12px;
+        font-weight: 800;
+        color: #3478e5;
+      }
+
+      .bp-muted { opacity: .72; }
+
+      .bp-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 10px 0;
+      }
+
+      .bp-chips button {
+        border: 1px solid rgba(80,120,180,.3);
+        border-radius: 999px;
+        padding: 9px 12px;
+        background: transparent;
+        color: inherit;
+      }
+
+      .bp-chips button.active {
+        background: #2563eb;
+        color: white;
+        border-color: #2563eb;
+      }
+
+      .bp-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        font-size: 12px;
+      }
+
+      .bp-stats {
+        display: grid;
+        grid-template-columns: repeat(2,minmax(0,1fr));
+        gap: 9px;
+        margin-top: 12px;
+      }
+
+      .bp-stat {
+        padding: 12px;
+        border-radius: 14px;
+        background: rgba(90,130,190,.09);
+        min-width: 0;
+      }
+
+      .bp-stat b {
+        display: block;
+        font-size: 18px;
+        overflow-wrap: anywhere;
+      }
+
+      .bp-stat span {
+        font-size: 12px;
+        opacity: .75;
+      }
+
+      .bp-warning {
+        padding: 12px;
+        border-radius: 12px;
+        background: rgba(245,158,11,.12);
+        font-size: 13px;
+        line-height: 1.5;
+        margin-top: 12px;
+      }
+    </style>
+  `;
+},
+,
+
+    
+update() {
+  const map = {
+    cellV: "bpCellV",
+    cellAh: "bpCellAh",
+    fullCellV: "bpFullV",
+    targetV: "bpTargetV",
+    targetAh: "bpTargetAh"
+  };
+
+  for (const [key, id] of Object.entries(map)) {
+    B[key] = val(id, B[key]);
+  }
+
+  store.set(KEY, B);
+
+  const out = get("bpOut");
+  if (!out) return;
+
+  const valid = [
+    B.cellV,
+    B.cellAh,
+    B.fullCellV,
+    B.targetV,
+    B.targetAh
+  ].every(Number.isFinite) &&
+    B.cellV > 0 &&
+    B.cellAh > 0 &&
+    B.fullCellV >= B.cellV &&
+    B.targetV > 0 &&
+    B.targetAh > 0;
+
+  if (!valid) {
+    App.last = null;
+    out.innerHTML =
+      `<div class="bp-card">${L("inputError")}</div>`;
+    return;
+  }
+
+  // Calculate series and parallel cell counts.
+  const series = Math.max(
+    1, Math.round(B.targetV / B.cellV)
+  );
+
+  const parallel = Math.max(
+    1, Math.ceil(B.targetAh / B.cellAh)
+  );
+
+  const actualV = series * B.cellV;
+  const fullV = series * B.fullCellV;
+  const actualAh = parallel * B.cellAh;
+  const cells = series * parallel;
+  const wh = actualV * actualAh;
+  const kwh = wh / 1000;
+
+  const diff = Math.abs(actualV - B.targetV);
+  const close = diff <= Math.max(0.5, B.targetV * 0.05);
+
+  out.innerHTML = `
+    <div class="bp-card">
+      <h3>2. ${L("results")}</h3>
+
+      <div class="bp-stats">
+        <div class="bp-stat">
+          <b>${safe(actualV)} V</b>
+          <span>${L("nominal")}</span>
         </div>
 
-        <div class="bp-card">
-          <h3>1. ${L("design")}</h3>
-          <div class="fields two">
-            ${fieldLocal("bpCellV",L("cellV"),B.cellV)}
-            ${fieldLocal("bpCellAh",L("cellAh"),B.cellAh)}
-            ${fieldLocal("bpFullV",L("fullV"),B.fullCellV)}
-            ${fieldLocal("bpTargetV",L("targetV"),B.targetV)}
-            ${fieldLocal("bpTargetAh",L("targetAh"),B.targetAh)}
-          </div>
+        <div class="bp-stat">
+          <b>${safe(fullV)} V</b>
+          <span>${L("full")}</span>
         </div>
 
-        <div class="bp-card">
-          <h3>2. ${L("energy")}</h3>
-          <div class="bp-label">${L("mode")}</div>
-          <div class="bp-chips">
-            ${["ah","wh","kwh"].map(x=>`<button type="button" data-act="energy-${x}" class="${B.energyMode===x?'active':''}">${L(x)}</button>`).join("")}
-          </div>
-          ${fieldLocal("bpEnergyAmount",L("amount"),1)}
-          <p class="bp-muted">${L("unitHelp")}</p>
-          <div id="bpEnergyOut" class="bp-stats"></div>
+        <div class="bp-stat">
+          <b>${series}S</b>
+          <span>${L("series")}</span>
         </div>
 
-        <div class="bp-card">
-          <h3>3. ${L("range")}</h3>
-          <div class="fields two">
-            ${fieldLocal("bpWhKm",L("consumption"),B.whKm)}
-            ${fieldLocal("bpUsable",L("usable"),B.usable)}
-            ${fieldLocal("bpEff",L("efficiency"),B.efficiency)}
-          </div>
+        <div class="bp-stat">
+          <b>${parallel}P</b>
+          <span>${L("parallel")}</span>
         </div>
 
-        <div class="bp-card">
-          <h3>4. ${L("charging")}</h3>
-          <div class="fields two">
-            ${fieldLocal("bpChargerA",L("charger"),B.chargerA)}
-            ${fieldLocal("bpSoc",L("soc"),B.soc)}
-          </div>
-          <p class="bp-muted">${L("chargeNote")}</p>
+        <div class="bp-stat">
+          <b>${cells}</b>
+          <span>${L("cells")}</span>
         </div>
 
-        <div id="bpOut"></div>
-        <div class="actions"><button class="save" id="save">${L("save")}</button></div>
-        <div class="note">${L("safety")}</div>
+        <div class="bp-stat">
+          <b>${safe(actualAh)} Ah</b>
+          <span>${L("capacity")}</span>
+        </div>
 
-        <style>
-          .bp-card{margin:12px 0;padding:16px;border-radius:20px;
-            background:var(--card,rgba(255,255,255,.75));
-            border:1px solid rgba(120,150,190,.23);
-            box-shadow:0 8px 24px rgba(30,60,100,.06)}
-          .bp-card h2{font-size:21px;margin:7px 0}
-          .bp-card h3{font-size:16px;margin:0 0 12px}
-          .bp-card p{font-size:13px;line-height:1.55}
-          .bp-kicker,.bp-label{font-size:12px;font-weight:800;color:#3478e5}
-          .bp-muted{opacity:.72}
-          .bp-chips{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
-          .bp-chips button{border:1px solid rgba(80,120,180,.3);
-            border-radius:999px;padding:9px 12px;background:transparent;color:inherit}
-          .bp-chips button.active{background:#2563eb;color:white;border-color:#2563eb}
-          .bp-head{display:flex;justify-content:space-between;gap:8px;font-size:12px}
-          .bp-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:12px}
-          .bp-stat{padding:12px;border-radius:14px;background:rgba(90,130,190,.09);min-width:0}
-          .bp-stat b{display:block;font-size:18px;overflow-wrap:anywhere}
-          .bp-stat span{font-size:12px;opacity:.75}
-          .bp-warning{padding:12px;border-radius:12px;background:rgba(245,158,11,.12);font-size:13px;line-height:1.5;margin-top:12px}
-          .bp-ok{font-size:13px;line-height:1.5;margin-top:10px}
-        </style>`;
-    },
+        <div class="bp-stat">
+          <b>${safe(wh)} Wh</b>
+          <span>Watt-hours</span>
+        </div>
 
-    update() {
-      const map = {
-        cellV:"bpCellV", cellAh:"bpCellAh", fullCellV:"bpFullV",
-        targetV:"bpTargetV", targetAh:"bpTargetAh", whKm:"bpWhKm",
-        usable:"bpUsable", efficiency:"bpEff", chargerA:"bpChargerA", soc:"bpSoc"
-      };
-      for (const [key,id] of Object.entries(map)) {
-        B[key] = val(id, B[key]);
-      }
-      store.set(KEY,B);
+        <div class="bp-stat">
+          <b>${safe(kwh)} kWh</b>
+          <span>Kilowatt-hours</span>
+        </div>
+      </div>
 
-      const out = get("bpOut");
-      if (!out) return;
+      <div class="bp-warning">
+        ${close ? L("voltageOK") : L("voltageWarn")}
+      </div>
+    </div>
 
-      const valid = [
-        B.cellV,B.cellAh,B.fullCellV,B.targetV,B.targetAh,
-        B.whKm,B.usable,B.efficiency,B.chargerA,B.soc
-      ].every(Number.isFinite) &&
-        B.cellV>0 && B.cellAh>0 && B.fullCellV>=B.cellV &&
-        B.fullCellV>0 && B.targetV>0 && B.targetAh>0 &&
-        B.whKm>0 && B.chargerA>0 &&
-        B.usable>=1 && B.usable<=100 &&
-        B.efficiency>=1 && B.efficiency<=100 &&
-        B.soc>=0 && B.soc<100;
+    ${packDrawing(series, parallel)}
+  `;
 
-      if (!valid) {
-        App.last = null;
-        out.innerHTML = `<div class="bp-card">${L("inputError")}</div>`;
-        const eo = get("bpEnergyOut");
-        if (eo) eo.innerHTML = "";
-        return;
-      }
-
-      // Nearest series count gives the nominal voltage closest to target.
-      const series = Math.max(1,Math.round(B.targetV/B.cellV));
-      const parallel = Math.max(1,Math.ceil(B.targetAh/B.cellAh));
-      const actualV = series*B.cellV;
-      const fullV = series*B.fullCellV;
-      const actualAh = parallel*B.cellAh;
-      const cells = series*parallel;
-      const wh = actualV*actualAh;
-      const kwh = wh/1000;
-      const usableWh = wh*(B.usable/100)*(B.efficiency/100);
-      const rangeKm = usableWh/B.whKm;
-      const chargeHours = actualAh*(1-B.soc/100)/B.chargerA/0.85;
-      const diff = Math.abs(actualV-B.targetV);
-      const close = diff<=Math.max(.5,B.targetV*.05);
-
-      const amountEl = get("bpEnergyAmount");
-      const amount = amountEl ? num(amountEl.value) : 1;
-      let convertedWh = NaN;
-      if (Number.isFinite(amount) && amount>=0) {
-        if (B.energyMode==="ah") convertedWh=amount*actualV;
-        if (B.energyMode==="wh") convertedWh=amount;
-        if (B.energyMode==="kwh") convertedWh=amount*1000;
-      }
-
-      const eo = get("bpEnergyOut");
-      if (eo) {
-        eo.innerHTML = Number.isFinite(convertedWh) ? `
-          <div class="bp-stat"><b>${safe(convertedWh/actualV)} Ah</b><span>Ah</span></div>
-          <div class="bp-stat"><b>${safe(convertedWh)} Wh</b><span>Wh</span></div>
-          <div class="bp-stat"><b>${safe(convertedWh/1000)} kWh</b><span>kWh</span></div>
-          <div class="bp-stat"><b>${safe(actualV)} V</b><span>${L("voltage")}</span></div>
-        ` : `<p>${L("inputError")}</p>`;
-      }
-
-      out.innerHTML = `
-        ${packDrawing(series,parallel)}
-        <div class="bp-card">
-          <h3>${L("results")}</h3>
-          <div class="bp-label">${L("rangeKm")}</div>
-          <div style="font-size:28px;font-weight:800">${safe(rangeKm)} km</div>
-          <p class="bp-muted">${L("rangeNote")}</p>
-          <div class="bp-stats">
-            <div class="bp-stat"><b>${safe(actualV)} V</b><span>${L("nominal")}</span></div>
-            <div class="bp-stat"><b>${safe(fullV)} V</b><span>${L("full")}</span></div>
-            <div class="bp-stat"><b>${series}S</b><span>${L("series")}</span></div>
-            <div class="bp-stat"><b>${parallel}P</b><span>${L("parallel")}</span></div>
-            <div class="bp-stat"><b>${cells}</b><span>${L("cells")}</span></div>
-            <div class="bp-stat"><b>${safe(actualAh)} Ah</b><span>${L("capacity")}</span></div>
-            <div class="bp-stat"><b>${safe(wh)} Wh</b><span>Wh</span></div>
-            <div class="bp-stat"><b>${safe(kwh)} kWh</b><span>kWh</span></div>
-            <div class="bp-stat"><b>${safe(usableWh)} Wh</b><span>${L("usable")}</span></div>
-            <div class="bp-stat"><b>${safe(chargeHours)} h</b><span>${L("chargeTime")}</span></div>
-          </div>
-          <div class="bp-warning">${close ? L("voltageOK") : L("voltageWarn")}</div>
-          ${B.soc>=100?`<div class="bp-ok">${L("lowSoc")}</div>`:""}
-        </div>`;
-
-      App.last = {
-        title:`Battery PRO · ${safe(actualV)}V · ${safe(actualAh)}Ah`,
-        result:`${series}S${parallel}P · ${cells} cells · ${safe(wh)}Wh · ${safe(rangeKm)}km`
-      };
-    },
-
-    click(el) {
-      if (el.dataset.chem) {
-        B.chemistry = el.dataset.chem;
-        const presets = {
-          liion:{cellV:3.7,fullCellV:4.2},
-          lfp:{cellV:3.2,fullCellV:3.65},
-          lead:{cellV:2,fullCellV:2.4},
-          custom:{cellV:B.cellV,fullCellV:B.fullCellV}
-        };
-        const p = presets[B.chemistry];
-        if (p) {
-          B.cellV=p.cellV;
-          B.fullCellV=p.fullCellV;
-        }
-        store.set(KEY,B);
-        App.view="battery";
-        render();
-        return true;
-      }
-
-      if (el.dataset.act && el.dataset.act.startsWith("energy-")) {
-        B.energyMode=el.dataset.act.replace("energy-","");
-        store.set(KEY,B);
-        App.view="battery";
-        render();
-        return true;
-      }
-
-      if (el.id==="save") {
-        if (!App.last) {
-          toast(L("need"));
-          return true;
-        }
-        App.hist.unshift({
-          ...App.last,
-          when:new Date().toLocaleString()
-        });
-        App.hist=App.hist.slice(0,50);
-        store.set("em_hist",App.hist);
-        toast(L("saved"));
-        return true;
-      }
-      return false;
-    }
-  });
-})();
+  App.last = {
+    title: `Battery PRO · ${safe(actualV)}V · ${safe(actualAh)}Ah`,
+    result: `${series}S${parallel}P · ${cells} cells · ${safe(wh)}Wh`
+  };
+},
+    
